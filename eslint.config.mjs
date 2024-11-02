@@ -15,7 +15,7 @@ const compat = new FlatCompat({
 export default [...compat.extends('strongloop'), {
   languageOptions: {
     globals: {
-      tw: 'readonly',
+      boot: 'readonly',
       dp: 'readonly',
       dd: 'readonly',
       de: 'readonly',
@@ -26,6 +26,7 @@ export default [...compat.extends('strongloop'), {
     sourceType: 'module',
   },
   rules: {
+    'no-eval': 'off',
     'max-len': 'off',
     'no-with': 'off',
     quotes: ['error', 'single'],
@@ -35,7 +36,7 @@ export default [...compat.extends('strongloop'), {
     'space-before-function-paren': 'off',
     complexity: ['warn', 20],
     'no-unused-vars': ['error', {
-      varsIgnorePattern: '^d.',
+      varsIgnorePattern: 'boot',
     }],
     'require-await': 'error',
   },

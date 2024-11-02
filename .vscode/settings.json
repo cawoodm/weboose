@@ -1,0 +1,7 @@
+{
+  "triggerTaskOnSave.tasks": {
+    "compile-tiddlers": [
+      "src/packages/*/*.*"
+    ]
+  }
+}
