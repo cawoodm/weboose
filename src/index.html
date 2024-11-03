@@ -5,6 +5,15 @@
   </head>
   <body>
     <script src="boot.js"></script>
-    <script>boot({name: "weboose.v0", url: 'https://cawoodm.github.io/weboose/kernels/', demo: true}); </script>
+    <script>boot(
+    {
+      name: "kernel.latest",
+      url: 'https://cawoodm.github.io/weboose/kernel/',
+      demo: true
+    }, {
+      name: 'weboose.latest',
+      url: 'https://cawoodm.github.io/weboose/os/',
+    });
+    </script>
   </body>
 </html>

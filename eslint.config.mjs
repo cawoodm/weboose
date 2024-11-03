@@ -34,7 +34,7 @@ export default [...compat.extends('strongloop'), {
     'quote-props': 'off',
     'block-spacing': 'off',
     'space-before-function-paren': 'off',
-    complexity: ['warn', 20],
+    complexity: ['warn', 40],
     'no-unused-vars': ['error', {
       varsIgnorePattern: 'boot',
     }],
