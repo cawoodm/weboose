@@ -24,6 +24,7 @@
       platformDefaults = p.platform || {};
 
       console.debug(`  OS: Operating System '${OS_NAME}' (v${OS_VERSION}) starting...`);
+      document.title = 'WebOOSe';
 
       platformName = p.qs.platform || kernel.read(PLATFORM_FILENAME) || platformDefaults.name;
       if (!platformName.match(RE_PLATFORM_NAME)) throw new Error(`INVALID_PLATFORM_NAME: '${platformName}' is not a valid OS name!`);

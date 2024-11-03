@@ -19,9 +19,14 @@ async function boot(p = {}) {
   const OS_FILENAME = '/os.name';
   const OS_URL = '/base.url';
 
-  console.debug(`BOOT: Bootloader (v${BOOTLOADER_VERSION}) starting...`);
-
   const qs = Object.fromEntries(new URLSearchParams(location.search));
+  Object.keys(qs).filter(q => qs[q] === '').forEach(q => (qs[q] = true)); // Empty params are switches => convert to true
+
+  if (qs.clear) localStorage.clear();
+  if (!qs.debug) console.debug = () => undefined;
+
+  console.debug(`BOOT: Bootloader (v${BOOTLOADER_VERSION}) starting...`);
+  document.title = 'WebOOSe';
 
   let osName = qs.os || read(OS_FILENAME) || p.os.name;
   if (!osName.match(RE_OS_NAME)) throw new Error(`INVALID_OS_NAME: '${osName}' is not a valid OS name!`);

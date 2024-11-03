@@ -72,7 +72,9 @@ The posible parameters are:
 * `url=` to override baseUrl for OS and Platform (e.g. `https://mysite.org`)
 * `oUrl=` to override baseUrl for bootloader to find OS (e.g. `https://mysite.org`)
 * `pUrl=` to override baseUrl for OS to find platform (e.g. `https://mysite.org`)
-* `reload=X` to ignore local cache and always load os/OS from remote ite
+* `reload=X` to ignore local cache and always load os/OS from remote site
+  * Note this does not ignore the locally cached urls. To override these use url parameters or clear:
+* `clear=X` to clear local cache 
 
 ### Kernel
 A OS is just a JavaScript which is run blindly by the boot loader. A useful OS will however load an OS or operating system.
