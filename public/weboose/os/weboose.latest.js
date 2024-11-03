@@ -1,99 +1,124 @@
 (function() {
+
   const OS_NAME = 'weboose';
   const OS_VERSION = '0.0.0';
-  let os;
-  let defaults;
+  const RE_PLATFORM_NAME = /^[a-z0-9\.]{3,30}$/;
+  const PLATFORM_FILENAME = '/platform.name';
+  const PLATFORM_URL = '/base.url';
+
+  let kernel;
+  let qs;
+  let osDefaults;
+  let platformDefaults;
+  let platformName;
   let baseUrl;
-  let osObject;
+  let platformObject;
+
   return {
+    name: OS_NAME,
     version: OS_VERSION,
-    async init(_os, _defaults) {
-      os = _os;
-      defaults = _defaults;
+    async init(p) {
+      qs = p.qs;
+      kernel = p.kernel;
+      osDefaults = p.os;
+      platformDefaults = p.platform || {};
 
-      console.debug(`OS: Operating System '${OS_NAME}' (v${OS_VERSION}) starting...`);
+      console.debug(`  OS: Operating System '${OS_NAME}' (v${OS_VERSION}) starting...`);
 
-      console.debug('OS: Looking for local OS.Core...');
-      let core = readObject('/core.js');
+      platformName = p.qs.platform || kernel.read(PLATFORM_FILENAME) || platformDefaults.name;
+      if (!platformName.match(RE_PLATFORM_NAME)) throw new Error(`INVALID_PLATFORM_NAME: '${platformName}' is not a valid OS name!`);
 
-      baseUrl = _os.params.url || read('base.url', defaults.baseUrl);
+      baseUrl = qs.pUrl || qs.url || kernel.read(PLATFORM_URL) || platformDefaults.url || p.base;
+      if (!baseUrl.match(/^https?:\/\//)) throw new Error(`INVALID_PLATFORM_URL: '${baseUrl}' is not a valid URL!`);
+      baseUrl = baseUrl.replace(/\/$/, '');
 
-      if (!core.code || _os.params.nocache) {
-        console.debug('OS: No local OS.Core found');
+      console.debug(`  OS: Looking for local platform '${platformName}'...`);
+      let platform = readObject('/platform/' + platformName);
+
+      if (!platform.code || p.qs.reload) {
+        console.debug('  OS: No local platform found');
         // Load from URL
-        if (!baseUrl) throw new Error('NO_OS_URL: Unable to determine URL to load OS.Core from!');
+        if (!baseUrl) throw new Error('NO_PLATFORM_URL: Unable to determine URL to load platform from!');
         // Assume .js
-        let osUrl = baseUrl + 'weboose/core.js';
+        let osUrl = baseUrl + '/platform/' + platformName + '.js';
         let res = {};
-        console.debug(`OS: Installing Core from '${osUrl}'...`);
+        console.debug(`  OS: Installing platform from '${osUrl}'...`);
         try {res = await fetch(osUrl);} catch {}
-        if (!res.ok) throw new Error(`OS: Unable to download OS.Core from '${osUrl}' HTTP status: ${res.statusCode}`);
-        if (res.headers.get('Content-Type')?.match(/text\/javascript/)) os.code = await res.text();
+        // Fallback to .json
+        if (!res) try {let osUrl = baseUrl + platformName + '.json'; res = await fetch(osUrl);} catch {}
+        if (!res.ok) throw new Error(`  OS: Unable to download platform from '${osUrl}' HTTP status: ${res.statusCode}`);
+        if (res.headers.get('Content-Type')?.match(/text\/javascript/)) platform.code = await res.text();
         else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
           try {
-            console.debug(`OS: Loading os '${osName}'...`);
-            os = JSON.parse(await res.text());
+            console.debug(`  OS: Loading platform '${platformName}'...`);
+            platform = JSON.parse(await res.text());
           } catch (e){
             console.error(e.stack);
-            os.error = e;
+            platform.error = e;
           }
-          if (os.error)
-            throw new Error(`INVALID_OS_JSON '${osName}' ${os.error.message}`);
-        } else throw new Error(`OS_FORMAT_UNKNOWN: ${osUrl} is not served as JS/JSON`);
+          if (platform.error)
+            throw new Error(`INVALID_PLATFORM_JSON '${platformName}' ${platform.error.message}`);
+        } else throw new Error(`PLATFORM_FORMAT_UNKNOWN: ${osUrl} is not served as JS/JSON`);
       }
-      if (!os.code)
-        throw new Error(`OS_CODE_MISSING '${osName}' has no code to run!`);
+      if (!platform.code)
+        throw new Error(`PLATFORM_CODE_MISSING '${platformName}' has no code to run!`);
 
-      write(OS_FILENAME, osName);
-      // write(KERNEL_URL, baseUrl);
-      writeObject('/os/' + osName, os);
+      kernel.write(PLATFORM_FILENAME, platformName);
+      kernel.write(PLATFORM_URL, baseUrl);
+      writeObject('/platform/' + platformName, platform);
 
-      console.debug(`OS: Executing OS '${osName}'...`);
+      console.debug(`  OS: Executing platform '${platformName}'...`);
       try {
-        osObject = (1, eval)(os.code);
+        platformObject = (1, eval)(platform.code);
       } catch (e) {
-        console.error('OS_FAILED', e.message);
+        console.error('PLATFORM_FAILED', e.message);
         throw (e);
       }
 
-      if (!osObject) throw new Error('OS_NOT_RETURNED');
-      if (!osObject.init) throw new Error('OS_INVALID: No init() function found!');
-      if (!osObject.start) throw new Error('OS_INVALID: No start() function found!');
+      if (!platformObject) throw new Error('PLATFORM_NOT_RETURNED');
+      if (!platformObject.init) throw new Error('PLATFORM_INVALID: No init() function found!');
+      if (!platformObject.start) throw new Error('PLATFORM_INVALID: No start() function found!');
     },
     async start() {
-      console.debug(`OS: Initialising OS '${osName}'...`);
-      document.write(`Welcome to your OS '${OS_NAME}' v${OS_VERSION}... it does nothing yet!`);
+      console.debug(`  OS: Initialising PLATFORM '${platformObject.name}' (v${platformObject.version}) ...`);
+      const FS = '/platform/' + platformName;
       try {
-        await osObject.init();
+        await platformObject.init({
+          qs,
+          platform: platformDefaults,
+          base: baseUrl,
+          os: {
+            read(key, def) {
+              return kernel.read(FS + key, def);
+            },
+            write(key, value) {
+              return kernel.write(FS + key, value);
+            },
+          },
+        });
       } catch (e) {
-        console.error('OS_INIT_FAILED', e.message);
+        console.error('PLATFORM_INIT_FAILED', e.message);
         throw (e);
       }
-      console.debug('OS: Initialised OS');
+      console.debug('  OS: Initialised OS');
 
-      console.debug(`OS: Starting OS '${osName}'...`);
+      console.debug(`  OS: Starting platform '${platformName}'...`);
       try {
-        osObject.start();
+        platformObject.start();
       } catch (e) {
-        console.error('OS_START_FAILED', e.message);
+        console.error('PLATFORM_START_FAILED', e.message);
         throw (e);
       }
 
-      console.debug('OS: Start complete.');
+      console.debug('  OS: Start complete.');
     },
   };
   function readObject(item) {
-    let json = read(item);
+    let json = kernel.read(item);
     if (!json?.match(/^\{/)) return {};
     return JSON.parse(json);
   }
-  function read(item, defaultValue) {
-    return os.read(item, defaultValue);
-  }
   function writeObject(item, value) {
-    return write(item, JSON.stringify(value));
-  }
-  function write(item, value) {
-    return os.write(item, value);
+    return kernel.write(item, JSON.stringify(value));
   }
 })();

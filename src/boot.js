@@ -2,121 +2,120 @@
 
 /**
  * BOOTLOADER (v0.0)
- * Boot loader which will run a kernel
+ * Boot loader which will run an OS
  *  from localStorage or a URL
- * A kernel is just some code to run, it can be .js or wrapped in a basic object:
+ * A OS is just some code to run, it can be .js or wrapped in a basic object:
  * {
- *   "name": "kernel.v0",
+ *   "name": "os.v0",
  *   "version": "0.0.1",
- *   "url": "https://cawoodm.github.io/weboose/kernel.v0.js",
+ *   "url": "https://cawoodm.github.io/weboose/os.v0.js",
  *   "code": "console.log('hello from weboose!');"
  * }
  */
-async function boot(kernelDefaults = {}, osDefaults = {}) {
+async function boot(p = {}) {
 
-  const RE_KERNEL_NAME = /^[a-z0-9\.]{3,30}$/;
-  const FS = '/';
-
+  const RE_OS_NAME = /^[a-z0-9\.]{3,30}$/;
   const BOOTLOADER_VERSION = '0.0';
+  const OS_FILENAME = '/os.name';
+  const OS_URL = '/base.url';
+
   console.debug(`BOOT: Bootloader (v${BOOTLOADER_VERSION}) starting...`);
 
-  // Kernel and URL can be overwridden via URL for easy up/down-grades:
-  //  ?kernel=weboose.v1&url=https://mydomain.com/kernel/
   const qs = Object.fromEntries(new URLSearchParams(location.search));
-  if (qs.kernel && !qs.kernel.match(RE_KERNEL_NAME)) throw new Error(`INVALID_KERNEL_NAME: '${qs.kernel}' is not a valid kernel name!`);
-  if (qs.url && !qs.url.match(/^https?:\/\//)) throw new Error(`INVALID_KERNEL_URL: '${qs.url}' is not a valid URL!`);
 
-  // Otherwise they are read from these 2 keys in localstorage
-  const KERNEL_FILENAME = '/kernel.name';
-  const KERNEL_URL = '/base.url';
+  let osName = qs.os || read(OS_FILENAME) || p.os.name;
+  if (!osName.match(RE_OS_NAME)) throw new Error(`INVALID_OS_NAME: '${osName}' is not a valid OS name!`);
 
-  let kernelName = qs.kernel || read(KERNEL_FILENAME, kernelDefaults.name);
-  if (!kernelName.match(RE_KERNEL_NAME)) throw new Error(`INVALID_KERNEL_NAME: '${kernelName}' is not a valid kernel name!`);
-  let baseUrl = qs.url || read(KERNEL_URL, kernelDefaults.url);
-  if (!baseUrl.match(/^https?:\/\//)) throw new Error(`INVALID_KERNEL_URL: '${baseUrl}' is not a valid URL!`);
+  let baseUrl = qs.oUrl || qs.url || read(OS_URL) || p?.os?.url || p.base;
+  if (!baseUrl.match(/^https?:\/\//)) throw new Error(`INVALID_OS_URL: '${baseUrl}' is not a valid URL!`);
+  baseUrl = baseUrl.replace(/\/$/, '');
 
-  if (!kernelName && !baseUrl && kernel.default) {
-    if (!confirm('No kernel settings found. Would you like to load a demo?')) throw new Error('KERNEL_SETTINGS_MISSING');
-    kernelName = 'weboose.latest';
-    baseUrl = 'https://cawoodm.github.io/weboose/kernel/';
+  if (!osName && !baseUrl && p.os.demo) {
+    if (!confirm('No OS settings found. Would you like to load a demo?')) throw new Error('OS_SETTINGS_MISSING');
+    osName = 'weboose.latest';
+    baseUrl = 'https://cawoodm.github.io/weboose';
   }
 
-  console.debug(`BOOT: Looking for local kernel '${kernelName}'...`);
-  let kernel = readObject('/kernels/' + kernelName, {});
+  console.debug(`BOOT: Looking for local OS '${osName}'...`);
+  let os = readObject('/os/' + osName, {});
 
-  if (!kernel.code || qs.nocache) {
+  if (!os.code || qs.reload) {
     // Load from URL
-    console.debug('BOOT: No local kernel found');
-    if (!KERNEL_URL) throw new Error('NO_KERNEL_URL: Unable to determine URL to load kernel from!');
+    console.debug('BOOT: No local OS found');
+    if (!OS_URL) throw new Error('NO_OS_URL: Unable to determine URL to load OS from!');
     // Assume .js
-    let kernelUrl = baseUrl + 'kernel/' + kernelName + '.js';
+    let osUrl = baseUrl + '/os/' + osName + '.js';
     let res = {};
-    console.debug(`BOOT: Installing from '${kernelUrl}'...`);
-    try {res = await fetch(kernelUrl);} catch {}
+    console.debug(`BOOT: Installing OS from '${osUrl}'...`);
+    try {res = await fetch(osUrl);} catch {}
     // Fallback to .json
-    if (!res) try {let kernelUrl = baseUrl + kernelName + '.json'; res = await fetch(kernelUrl);} catch {}
-    if (!res.ok) throw new Error(`KERNEL_DOWNLOAD_ERROR: Unable to download kernel from '${kernelUrl}' HTTP status: ${res.statusCode}`);
-    if (res.headers.get('Content-Type')?.match(/text\/javascript/)) kernel.code = await res.text();
+    if (!res) try {let osUrl = baseUrl + osName + '.json'; res = await fetch(osUrl);} catch {}
+    if (!res.ok) throw new Error(`OS_DOWNLOAD_ERROR: Unable to download OS from '${osUrl}' HTTP status: ${res.statusCode}`);
+    if (res.headers.get('Content-Type')?.match(/text\/javascript/)) os.code = await res.text();
     else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
       try {
-        console.debug(`BOOT: Loading kernel '${kernelName}'...`);
-        kernel = JSON.parse(await res.text());
+        console.debug(`BOOT: Loading OS '${osName}'...`);
+        os = JSON.parse(await res.text());
       } catch (e){
         console.error(e.stack);
-        kernel.error = e;
+        os.error = e;
       }
-      if (kernel.error)
-        throw new Error(`INVALID_KERNEL_JSON '${kernelName}' ${kernel.error.message}`);
-    } else throw new Error(`KERNEL_FORMAT_UNKNOWN: ${kernelUrl} is not served as JS/JSON`);
+      if (os.error)
+        throw new Error(`INVALID_OS_JSON '${osName}' ${os.error.message}`);
+    } else throw new Error(`OS_FORMAT_UNKNOWN: ${osUrl} is not served as JS/JSON`);
   }
 
-  if (!kernel.code)
-    throw new Error(`KERNEL_CODE_MISSING '${kernelName}' has no code to run!`);
+  if (!os.code)
+    throw new Error(`OS_CODE_MISSING '${osName}' has no code to run!`);
 
-  write(KERNEL_FILENAME, kernelName);
-  write(KERNEL_URL, baseUrl);
-  writeObject('/kernels/' + kernelName, kernel);
+  write(OS_FILENAME, osName);
+  write(OS_URL, baseUrl);
+  writeObject('/os/' + osName, os);
 
   // The MAGIC happens here:
-  console.debug(`BOOT: Executing kernel '${kernelName}'...`);
-  let kernelObject;
+  console.debug(`BOOT: Executing OS '${osName}'...`);
+  let osObject;
   try {
     // TODO: Run differently so we get line numbers?
-    kernelObject = (1, eval)(kernel.code);
+    osObject = (1, eval)(os.code);
   } catch (e) {
-    console.error('KERNEL_FAILED', e);
+    console.error('OS_FAILED', e);
     throw (e);
   }
 
-  if (!kernelObject) throw new Error('KERNEL_NOT_RETURNED: The kernel');
-  if (!kernelObject.init) throw new Error('KERNEL_INVALID: No init() function found!');
-  if (!kernelObject.start) throw new Error('KERNEL_INVALID: No start() function found!');
+  if (!osObject) throw new Error('OS_NOT_RETURNED: The os');
+  if (!osObject.init) throw new Error('OS_INVALID: No init() function found!');
+  if (!osObject.start) throw new Error('OS_INVALID: No start() function found!');
 
-  console.debug('BOOT: Initialising kernel...');
+  console.debug(`BOOT: Initialising OS ${osObject.name} (v${osObject.version}) ...`);
+  const FS = '/os/' + osName;
   try {
-    await kernelObject.init({
-      params: qs,
-      meta: {name: kernelName, baseUrl},
-      read(key, def) {
-        return read(FS + key, def);
+    await osObject.init({
+      qs,
+      base: p.base,
+      os: p.os,
+      platform: p.platform,
+      kernel: {
+        read(key, def) {
+          return read(FS + key, def);
+        },
+        write(key, value) {
+          return write(FS + key, value);
+        },
       },
-      write(key, value) {
-        return write(FS + key, value);
-      },
-    }, osDefaults);
-    console.debug('BOOT: Kernel initialised.');
+    });
+    console.debug('BOOT: OS initialised.');
   } catch (e) {
-    console.error('KERNEL_INIT_FAILED', e.message);
+    console.error('OS_INIT_FAILED', e.message);
     throw (e);
   }
 
-  console.debug('BOOT: Starting kernel...');
-  console.debug('BOOT: Starting kernel...');
+  console.debug('BOOT: Starting OS...');
   try {
-    kernelObject.start();
-    // Note: we do not wait for the kernel to start, our job is done!
+    osObject.start();
+    // Note: we do not (a)wait for the OS to start, our job is done!
   } catch (e) {
-    console.error('KERNEL_START_FAILED', e.message);
+    console.error('OS_START_FAILED', e.message);
     throw (e);
   }
 
