@@ -15,7 +15,7 @@
 async function boot(p = {}) {
 
   const RE_OS_NAME = /^[a-z0-9\.]{3,30}$/;
-  const BOOTLOADER_VERSION = '0.0';
+  const BOOTLOADER_VERSION = '0.0.1';
   const OS_FILENAME = '/os.name';
   const OS_URL = '/base.url';
 

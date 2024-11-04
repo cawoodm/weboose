@@ -1,7 +1,7 @@
 (function() {
 
   const LOG = '    PLATFORM:';
-  const PLATFORM_NAME = 'twikki';
+  const PLATFORM_NAME = 'example';
   const PLATFORM_VERSION = '0.0.0';
 
   let qs;
@@ -20,7 +20,7 @@
 
       console.debug(`${LOG} Platform '${PLATFORM_NAME}' (v${PLATFORM_VERSION}) starting...`);
 
-      console.debug(`${LOG} Looking for local OS.Core...`);
+      console.debug(`${LOG} Looking for local EXAMPLE.Core...`);
       let core = readObject('/packages/core.js');
       baseUrl = qs.pUrl || qs.url || os.read('base.url') || p.base;
 
@@ -29,10 +29,10 @@
         core = await loadPackage('/core', baseUrl);
       }
 
-      console.debug(`${LOG} Executing OS.Core...`);
+      console.debug(`${LOG} Executing EXAMPLE.Core...`);
       coreObject = (1, eval)(core.code);
 
-      console.debug(`${LOG} Initialising OS.Core...`);
+      console.debug(`${LOG} Initialising EXAMPLE.Core...`);
       await coreObject.init();
 
       os.write('/base.url', baseUrl);
@@ -42,6 +42,8 @@
     async start() {
       console.debug(`${LOG} Initialising Platform '${PLATFORM_NAME}'...`);
       document.write(`Welcome to your platform '${PLATFORM_NAME}' v${PLATFORM_VERSION}... it does nothing yet!`);
+      // Here you could create a DOM from nothing or...
+      // Do it via objects previously loaded:
       coreObject.start();
       console.debug(`${LOG} Platform start complete.`);
     },
@@ -51,15 +53,15 @@
     // Assume .js
     let packageUrl = baseUrl + '/packages' + packageName + '.js';
     let res = {};
-    console.debug(`      TWIKKI: Installing package from '${packageUrl}'...`);
+    console.debug(`      EXAMPLE: Installing package from '${packageUrl}'...`);
     try {res = await fetch(packageUrl);} catch {}
     // Fallback to .json
     if (!res) try {let packageUrl = baseUrl + packageName + '.json'; res = await fetch(packageUrl);} catch {}
-    if (!res.ok) throw new Error(`      TWIKKI: Unable to download package from '${packageUrl}' HTTP status: ${res.statusCode}`);
+    if (!res.ok) throw new Error(`      EXAMPLE: Unable to download package from '${packageUrl}' HTTP status: ${res.statusCode}`);
     if (res.headers.get('Content-Type')?.match(/text\/javascript/)) res.code = await res.text();
     else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
       try {
-        console.debug(`      TWIKKI: Loading package '${packageName}'...`);
+        console.debug(`      EXAMPLE: Loading package '${packageName}'...`);
         res = JSON.parse(await res.text());
       } catch (e){
         console.error(e.stack);

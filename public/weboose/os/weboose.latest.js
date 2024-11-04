@@ -1,7 +1,7 @@
 (function() {
 
   const OS_NAME = 'weboose';
-  const OS_VERSION = '0.0.0';
+  const OS_VERSION = '0.0.1';
   const RE_PLATFORM_NAME = /^[a-z0-9\.]{3,30}$/;
   const PLATFORM_FILENAME = '/platform.name';
   const PLATFORM_URL = '/base.url';

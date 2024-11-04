@@ -68,7 +68,7 @@ Each of these parameters can be overridden via URL such that you can supply URL 
 For example calling `http://localhost/?os=myweboose.v2&os=weboose.latest` will load `myweboose.v2` with the latest `weboose` regardless of what is configured or stored locally.
 The posible parameters are:
 * `os=` to specify/override OS name (e.g. `weboose.v1`)
-* `platform=` to specify/override Platform name (e.g. `twikki.v2`)
+* `platform=` to specify/override Platform name (e.g. `example.v2`)
 * `url=` to override baseUrl for OS and Platform (e.g. `https://mysite.org`)
 * `oUrl=` to override baseUrl for bootloader to find OS (e.g. `https://mysite.org`)
 * `pUrl=` to override baseUrl for OS to find platform (e.g. `https://mysite.org`)
@@ -80,3 +80,8 @@ The posible parameters are:
 A OS is just a JavaScript which is run blindly by the boot loader. A useful OS will however load an OS or operating system.
 
 The weboose OS reads `/default.os` to see which OS it should load.
+
+## Development
+If you run this project locally on http://localhost:3001 then you should start the URL http://localhost:3001/?url=http://localhost:3001/weboose
+
+This ensures it ises your local development instance as a baseUrl for loading the OS
