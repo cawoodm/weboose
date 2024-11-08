@@ -36,7 +36,7 @@
       console.debug(`  OS: Looking for local platform '${platformName}'...`);
       let platform = readObject('/platform/' + platformName);
 
-      if (!platform.code || p.qs.reload) {
+      if (!platform.code || p.qs.reload || qs.update) {
         console.debug('  OS: No local platform found');
         // Load from URL
         if (!baseUrl) throw new Error('NO_PLATFORM_URL: Unable to determine URL to load platform from!');
@@ -47,29 +47,34 @@
         try {res = await fetch(osUrl);} catch {}
         // Fallback to .json
         if (!res) try {let osUrl = baseUrl + platformName + '.json'; res = await fetch(osUrl);} catch {}
-        if (!res.ok) throw new Error(`  OS: Unable to download platform from '${osUrl}' HTTP status: ${res.statusCode}`);
-        if (res.headers.get('Content-Type')?.match(/\/javascript/)) platform.code = await res.text();
-        else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
-          try {
-            console.debug(`  OS: Loading platform '${platformName}'...`);
-            platform = JSON.parse(await res.text());
-          } catch (e){
-            console.error(e.stack);
-            platform.error = e;
-          }
-          if (platform.error)
-            throw new Error(`INVALID_PLATFORM_JSON '${platformName}' ${platform.error.message}`);
-        } else throw new Error(`PLATFORM_FORMAT_UNKNOWN: ${osUrl} is not served as JS/JSON`);
+        try {
+          if (!res.ok) throw new Error(`  OS: Unable to download platform from '${osUrl}' HTTP status: ${res.statusCode}`);
+          if (res.headers.get('Content-Type')?.match(/\/javascript/)) platform.code = await res.text();
+          else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
+            try {
+              console.debug(`  OS: Loading platform '${platformName}'...`);
+              platform = JSON.parse(await res.text());
+            } catch (e){
+              console.error(e.stack);
+              platform.error = e;
+            }
+            if (platform.error)
+              throw new Error(`INVALID_PLATFORM_JSON '${platformName}' ${platform.error.message}`);
+          } else throw new Error(`PLATFORM_FORMAT_UNKNOWN: ${osUrl} is not served as JS/JSON`);
+          kernel.write(PLATFORM_URL, baseUrl);
+        } catch (e) {
+          if (qs.update) console.warn(`OS_DOWNLOAD_ERROR: Unable to download OS from '${osUrl}' HTTP status: ${res.statusCode}`);
+          else throw e;
+        }
       }
       if (!platform.code)
         throw new Error(`PLATFORM_CODE_MISSING '${platformName}' has no code to run!`);
 
       kernel.write(PLATFORM_FILENAME, platformName);
-      kernel.write(PLATFORM_URL, baseUrl);
       writeObject('/platform/' + platformName, platform);
 
       console.debug(`  OS: Executing platform '${platformName}'...`);
-      await wrapSync(() => {
+      await kernel.wrapSync(() => {
         platformObject = (1, eval)(platform.code);
       }, 'PLATFORM_FAILED');
 
@@ -80,7 +85,7 @@
     async start() {
       console.debug(`  OS: Initialising PLATFORM '${platformObject.name}' (v${platformObject.version}) ...`);
       const FS = '/platform/' + platformName;
-      await wrapAsync(async () => {
+      await kernel.wrapAsync(async () => {
         await platformObject.init({
           qs,
           platform: platformDefaults,
@@ -99,38 +104,13 @@
 
       console.debug(`  OS: Starting platform '${platformName}'...`);
       // NOTE: If we try/catch here we lose all info in the console about where exactly the error occurred
-      await wrapAsync(async () => {
+      await kernel.wrapAsync(async () => {
         await platformObject.start();
       }, 'PLATFORM_START_FAILED');
 
       console.debug('  OS: Start complete.');
     },
   };
-  function wrapSync(fcn, errMsg) {
-    if (qs.trace) return fcn();
-    try {
-      return fcn();
-    } catch (e) {
-      showErrorTip();
-      console.error(errMsg, e.message);
-      throw (e);
-    }
-  }
-  async function wrapAsync(fcn, errMsg) {
-    if (qs.trace) return await fcn();
-    try {
-      return await fcn();
-    } catch (e) {
-      showErrorTip();
-      console.error(errMsg, e.message);
-      throw (e);
-    }
-  }
-  function showErrorTip() {
-    let traceUrl = document.location.href;
-    traceUrl = traceUrl.match(/\?/) ? traceUrl + '&trace' : traceUrl + '?trace';
-    console.error('Tip: Launch with ?trace to see source of error:', traceUrl);
-  }
   function readObject(item) {
     let json = kernel.read(item);
     if (!json?.match(/^\{/)) return {};
