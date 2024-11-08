@@ -48,7 +48,7 @@
         // Fallback to .json
         if (!res) try {let osUrl = baseUrl + platformName + '.json'; res = await fetch(osUrl);} catch {}
         if (!res.ok) throw new Error(`  OS: Unable to download platform from '${osUrl}' HTTP status: ${res.statusCode}`);
-        if (res.headers.get('Content-Type')?.match(/text\/javascript/)) platform.code = await res.text();
+        if (res.headers.get('Content-Type')?.match(/\/javascript/)) platform.code = await res.text();
         else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
           try {
             console.debug(`  OS: Loading platform '${platformName}'...`);
@@ -69,12 +69,9 @@
       writeObject('/platform/' + platformName, platform);
 
       console.debug(`  OS: Executing platform '${platformName}'...`);
-      try {
+      await wrapSync(() => {
         platformObject = (1, eval)(platform.code);
-      } catch (e) {
-        console.error('PLATFORM_FAILED', e.message);
-        throw (e);
-      }
+      }, 'PLATFORM_FAILED');
 
       if (!platformObject) throw new Error('PLATFORM_NOT_RETURNED');
       if (!platformObject.init) throw new Error('PLATFORM_INVALID: No init() function found!');
@@ -83,7 +80,7 @@
     async start() {
       console.debug(`  OS: Initialising PLATFORM '${platformObject.name}' (v${platformObject.version}) ...`);
       const FS = '/platform/' + platformName;
-      try {
+      await wrapAsync(async () => {
         await platformObject.init({
           qs,
           platform: platformDefaults,
@@ -97,23 +94,43 @@
             },
           },
         });
-      } catch (e) {
-        console.error('PLATFORM_INIT_FAILED', e.message);
-        throw (e);
-      }
+      }, 'PLATFORM_INIT_FAILED');
       console.debug('  OS: Initialised OS');
 
       console.debug(`  OS: Starting platform '${platformName}'...`);
-      try {
-        platformObject.start();
-      } catch (e) {
-        console.error('PLATFORM_START_FAILED', e.message);
-        throw (e);
-      }
+      // NOTE: If we try/catch here we lose all info in the console about where exactly the error occurred
+      await wrapAsync(async () => {
+        await platformObject.start();
+      }, 'PLATFORM_START_FAILED');
 
       console.debug('  OS: Start complete.');
     },
   };
+  function wrapSync(fcn, errMsg) {
+    if (qs.trace) return fcn();
+    try {
+      return fcn();
+    } catch (e) {
+      showErrorTip();
+      console.error(errMsg, e.message);
+      throw (e);
+    }
+  }
+  async function wrapAsync(fcn, errMsg) {
+    if (qs.trace) return await fcn();
+    try {
+      return await fcn();
+    } catch (e) {
+      showErrorTip();
+      console.error(errMsg, e.message);
+      throw (e);
+    }
+  }
+  function showErrorTip() {
+    let traceUrl = document.location.href;
+    traceUrl = traceUrl.match(/\?/) ? traceUrl + '&trace' : traceUrl + '?trace';
+    console.error('Tip: Launch with ?trace to see source of error:', traceUrl);
+  }
   function readObject(item) {
     let json = kernel.read(item);
     if (!json?.match(/^\{/)) return {};

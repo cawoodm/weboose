@@ -10,7 +10,7 @@
     "watch": "npm-watch",
     "build": "vite build --emptyOutDir && cd dist && vite",
     "build-test": "vite build --emptyOutDir && cd dist && vite --open --host",
-    "build-publish": "pwsh publish.ps1"
+    "build-publish": "pwsh ci/publish.ps1"
   },
   "dependencies": {},
   "devDependencies": {

@@ -82,6 +82,6 @@ A OS is just a JavaScript which is run blindly by the boot loader. A useful OS w
 The weboose OS reads `/default.os` to see which OS it should load.
 
 ## Development
-If you run this project locally on http://localhost:3001 then you should start the URL http://localhost:3001/?url=http://localhost:3001/weboose
+If you run this project locally on http://localhost:3001 then you should start the URL http://localhost:3001/?url=http://localhost:3001
 
 This ensures it ises your local development instance as a baseUrl for loading the OS

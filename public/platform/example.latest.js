@@ -39,6 +39,7 @@
       writeObject('/packages/core.js', core);
 
     },
+    // eslint-disable-next-line require-await
     async start() {
       console.debug(`${LOG} Initialising Platform '${PLATFORM_NAME}'...`);
       document.write(`Welcome to your platform '${PLATFORM_NAME}' v${PLATFORM_VERSION}... it does nothing yet!`);
@@ -58,7 +59,7 @@
     // Fallback to .json
     if (!res) try {let packageUrl = baseUrl + packageName + '.json'; res = await fetch(packageUrl);} catch {}
     if (!res.ok) throw new Error(`      EXAMPLE: Unable to download package from '${packageUrl}' HTTP status: ${res.statusCode}`);
-    if (res.headers.get('Content-Type')?.match(/text\/javascript/)) res.code = await res.text();
+    if (res.headers.get('Content-Type')?.match(/\/javascript/)) res.code = await res.text();
     else if (res.headers.get('Content-Type')?.match(/application\/json/)) {
       try {
         console.debug(`      EXAMPLE: Loading package '${packageName}'...`);

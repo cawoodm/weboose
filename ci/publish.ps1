@@ -7,10 +7,10 @@ function main() {
     git pull
     if ($LASTEXITCODE -ne 0) {throw "GIT PULL Failed!"}
     Remove-Item -Recurse -Force * -Verbose
-    Copy-Item ../../weboose/dist/* -Recurse ./ -Verbose
-    #Copy-Item ../../weboose/src/tiddlers/*.json -Recurse ./ -Verbose
-    #Copy-Item ../../weboose/docs/favicon.ico ./ -Verbose
-    #read-host "Push?"
+    Copy-Item ../../weboose/dist/* -Recurse ./ #-Verbose
+    Copy-Item ../../weboose/src/os -Recurse ./ #-Verbose
+    Copy-Item ../../weboose/src/packages -Recurse ./ #-Verbose
+    Read-Host "Commit & Push?"
     git add .
     git commit -a -m "weboose-$ver-$(Get-Date -f yyyyMMddhhmm)"
     git push
